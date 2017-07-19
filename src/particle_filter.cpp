@@ -17,7 +17,7 @@ using namespace std;
 std::default_random_engine gen;
 
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-  num_particles = 800;
+  num_particles = 500;
 
   // Initialize weights to 1
   weights = std::vector<double>((unsigned long) num_particles, 1.);
@@ -81,9 +81,12 @@ inline double dist2(const LandmarkObs &a, const Map::single_landmark_s &b) {
   return dist2(a.x, a.y, b.x_f, b.y_f);
 }
 
+inline double dist2(const Particle &a, const Map::single_landmark_s &b) {
+  return dist2(a.x, a.y, b.x_f, b.y_f);
+}
+
 const Map::single_landmark_s &
-ParticleFilter::findClosestLandmark(const Map &map_landmarks, const LandmarkObs &map_obs) {
-  const std::vector<Map::single_landmark_s> &landmarks = map_landmarks.landmark_list;
+ParticleFilter::findClosestLandmark(const std::vector<Map::single_landmark_s> &landmarks, const LandmarkObs &map_obs) {
   double min_dist2 = dist2(map_obs, landmarks[0]);
   int closest_i = 0;
 
@@ -111,8 +114,16 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   weights.clear();
 
   for (Particle &p : particles) {
-    std::vector<LandmarkObs> map_observations;
 
+    // Filter landmarks in range (only consider landmarks in range of the mean particle, with some buffer)
+    std::vector<Map::single_landmark_s> landmarks_in_range;
+    for (const Map::single_landmark_s &landmark : map_landmarks.landmark_list) {
+      if (dist2(p, landmark) < 1.2 * sensor_range * sensor_range) {
+        landmarks_in_range.push_back(landmark);
+      }
+    }
+
+    std::vector<LandmarkObs> map_observations;
     double final_weight = 1.;
 
     // For each observation
@@ -123,7 +134,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       map_obs.y = obs.x * sin(p.theta) + obs.y * cos(p.theta) + p.y;
 
       // Find nearest neighbour and assign observation
-      const Map::single_landmark_s &closest = findClosestLandmark(map_landmarks, map_obs);
+      const Map::single_landmark_s &closest = findClosestLandmark(landmarks_in_range, map_obs);
       map_obs.id = closest.id_i;
 
       // Calculate weight

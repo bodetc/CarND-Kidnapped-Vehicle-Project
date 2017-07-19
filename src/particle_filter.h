@@ -37,7 +37,7 @@ class ParticleFilter {
 	std::vector<double> weights;
 
   // Finds the closest landmark to a given observation (observation in map coordinates)
-  const Map::single_landmark_s& findClosestLandmark(const Map& map_landmarks, const LandmarkObs& map_obs);
+  const Map::single_landmark_s& findClosestLandmark(const std::vector<Map::single_landmark_s> &landmarks, const LandmarkObs& map_obs);
 	
 public:
 	
